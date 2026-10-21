@@ -1,6 +1,15 @@
 # Qoder Chat
 
+[![GitHub stars](https://img.shields.io/github/stars/40kuai/Qoder-Chat?style=flat-square)](https://github.com/40kuai/Qoder-Chat/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/40kuai/Qoder-Chat?style=flat-square)](https://github.com/40kuai/Qoder-Chat/issues)
+[![Last commit](https://img.shields.io/github/last-commit/40kuai/Qoder-Chat?style=flat-square)](https://github.com/40kuai/Qoder-Chat/commits/main)
+[![Follow @40kuai](https://img.shields.io/github/followers/40kuai?style=flat-square&label=Follow)](https://github.com/40kuai)
+
 > 基于 Qoder CN 官方 Agent SDK 的本地多模型代理与聊天界面，提供 OpenAI / Anthropic 兼容 API。
+
+**作者：[@40kuai](https://github.com/40kuai)** · [项目主页](https://github.com/40kuai/Qoder-Chat) · [问题反馈](https://github.com/40kuai/Qoder-Chat/issues)
+
+`Qoder CN` · `DeepSeek-Flash` · `OpenAI 兼容` · `Anthropic Messages` · `OAuth 多账号` · `自动负载均衡` · `健康检查` · `本地聊天`
 
 ## 免责声明
 
@@ -26,6 +35,12 @@
 - 本机/内网打开 Web UI 时自动填充 API Key
 - 一键复制其他 Agent 的接入配置（Claude / OpenAI / curl / JSON）
 - 通过官方 SDK 完成鉴权与签名，不伪造请求签名
+
+## 适合谁
+
+- 想把 Qoder CN 模型接入 OpenAI / Claude 兼容客户端的开发者
+- 有多个自有 Qoder CN 账号，需要 OAuth 管理、健康检查和自动负载均衡的用户
+- 想要本地聊天界面，但不希望把 API Key 暴露到公网的用户
 
 ## 环境要求
 
@@ -368,6 +383,13 @@ Qoder CN 的 DeepSeek-Flash 模型 ID 为 `dfmodel`，实际推理走 Qoder 网�
 **客户端收到空 502 / 代理错误**
 
 如果客户端使用系统代理，请把 `127.0.0.1` / 局域网 IP 加入 `NO_PROXY`，或关闭该客户端的环境代理。
+
+## 关于作者
+
+- GitHub：[@40kuai](https://github.com/40kuai)
+- 项目主页：https://github.com/40kuai/Qoder-Chat
+- 问题反馈：https://github.com/40kuai/Qoder-Chat/issues
+- 如果这个项目对你有帮助，欢迎 Star、提交 Issue 或 PR。
 
 ## 使用与转载
 
