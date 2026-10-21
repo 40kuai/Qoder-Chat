@@ -1,10 +1,29 @@
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { once } from 'node:events';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import {
+  ACCOUNTS_FILE,
+  addOAuthAccount,
+  cancelOAuthLogin,
+  checkAccount,
+  ensureLegacyAccount,
+  findAccount,
+  loadStore,
+  loginCommandHint,
+  markAccountAuthError,
+  markAccountUsed,
+  pickBalancedAccount,
+  publicAccount,
+  removeAccount,
+  saveStore,
+  setDefaultAccount,
+  setLoadBalance,
+  startOAuthLogin,
+} from './accounts.mjs';
 
 const APP_PATH = process.env.QODER_APP_PATH || '/Applications/Qoder CN.app';
 const SDK_PATH = path.join(
@@ -23,6 +42,7 @@ const PORT = Number.parseInt(process.env.PORT || '8788', 10);
 const PROXY_API_KEY = (process.env.PROXY_API_KEY || '').trim();
 const UI_AUTO_AUTH = (process.env.UI_AUTO_AUTH || 'private').toLowerCase();
 const REQUEST_TIMEOUT_MS = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '300000', 10);
+const ACCOUNT_HEALTH_INTERVAL_MS = Number.parseInt(process.env.ACCOUNT_HEALTH_INTERVAL_MS || '600000', 10);
 const MAX_CONCURRENT = Math.max(1, Number.parseInt(process.env.MAX_CONCURRENT || '4', 10));
 const QUEUE_LIMIT = Math.max(1, Number.parseInt(process.env.QUEUE_LIMIT || '64', 10));
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
@@ -65,7 +85,6 @@ function fail(message) {
   process.exit(1);
 }
 
-if (!PAT) fail('QODER_PAT is required. Put it in .env or export it before starting.');
 if (!existsSync(RUNTIME_PATH)) fail(`Qoder CN SDK runtime not found: ${RUNTIME_PATH}`);
 if (!Number.isInteger(PORT) || PORT <= 0 || PORT > 65535) fail(`Invalid PORT: ${process.env.PORT}`);
 if (!isLoopback(HOST) && !PROXY_API_KEY) {
@@ -75,6 +94,47 @@ if (!['private', 'local', 'off'].includes(UI_AUTO_AUTH)) {
   fail('UI_AUTO_AUTH must be one of: private, local, off.');
 }
 mkdirSync(WORKDIR, { recursive: true });
+
+const ACCOUNT_STORE = loadStore();
+ensureLegacyAccount(ACCOUNT_STORE, PAT);
+if (!ACCOUNT_STORE.accounts.some((account) => account.id === ACCOUNT_STORE.defaultAccountId)) {
+  ACCOUNT_STORE.defaultAccountId = ACCOUNT_STORE.accounts[0]?.id || null;
+  saveStore(ACCOUNT_STORE);
+}
+let resetPendingLogins = false;
+for (const account of ACCOUNT_STORE.accounts) {
+  if (account.status === 'login_pending') {
+    account.status = 'login_required';
+    account.lastError = '登录进程已中断，请重新登录';
+    resetPendingLogins = true;
+  }
+}
+if (resetPendingLogins) saveStore(ACCOUNT_STORE);
+const HAS_OAUTH_ACCOUNT = ACCOUNT_STORE.accounts.some((account) => account.authType === 'oauth');
+if (!PAT && !HAS_OAUTH_ACCOUNT) {
+  fail('No account configured. Run ./accounts.sh add "name" and ./accounts.sh login <id>, or set QODER_PAT.');
+}
+
+let accountStoreMtime = 0;
+try {
+  accountStoreMtime = statSync(ACCOUNTS_FILE).mtimeMs;
+} catch {
+  // The store file may not exist yet.
+}
+
+function refreshAccountStore() {
+  try {
+    const mtime = statSync(ACCOUNTS_FILE).mtimeMs;
+    if (mtime === accountStoreMtime) return;
+    const latest = loadStore();
+    ACCOUNT_STORE.version = latest.version;
+    ACCOUNT_STORE.defaultAccountId = latest.defaultAccountId;
+    ACCOUNT_STORE.accounts = latest.accounts;
+    accountStoreMtime = mtime;
+  } catch {
+    // Keep the in-memory copy on transient read errors.
+  }
+}
 
 function getLanAddresses() {
   const found = [];
@@ -152,10 +212,10 @@ function setCors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'Authorization, Content-Type, x-api-key, anthropic-version, anthropic-beta, x-request-id',
+    'Authorization, Content-Type, x-api-key, anthropic-version, anthropic-beta, x-request-id, x-qoder-account',
   );
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Expose-Headers', 'X-Qoder-Context-Window');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Qoder-Context-Window, X-Qoder-Account');
 }
 
 function checkAuth(req) {
@@ -309,6 +369,61 @@ function resolveContextWindow(value, modelMeta) {
   return parsed;
 }
 
+function resolveRequestAccount(req, body) {
+  refreshAccountStore();
+  const selector =
+    (typeof body?.account === 'string' && body.account.trim()) ||
+    (typeof req.headers['x-qoder-account'] === 'string' && req.headers['x-qoder-account'].trim()) ||
+    '';
+  if (selector === 'auto' || selector === '__auto__' || (!selector && ACCOUNT_STORE.loadBalance !== false)) {
+    const balanced = pickBalancedAccount(ACCOUNT_STORE);
+    if (!balanced) {
+      throw new ApiError(
+        503,
+        '没有健康账号可用，请检查账号状态或重新登录。',
+        'no_healthy_account',
+      );
+    }
+    return balanced;
+  }
+  const account = findAccount(ACCOUNT_STORE, selector);
+  if (!account) {
+    throw new ApiError(
+      404,
+      selector
+        ? `Account '${selector}' not found`
+        : 'No account configured. Run ./accounts.sh add "name" and ./accounts.sh login <id>.',
+      'account_not_found',
+    );
+  }
+  if (account.status === 'login_required') {
+    throw new ApiError(
+      409,
+      `账号「${account.label}」需要登录。运行 ./accounts.sh login ${account.id}`,
+      'account_login_required',
+    );
+  }
+  if (account.status === 'error') {
+    throw new ApiError(
+      409,
+      `账号「${account.label}」当前不可用：${account.lastError || '未知错误'}`,
+      'account_unavailable',
+    );
+  }
+  if (account.status === 'login_pending') {
+    throw new ApiError(
+      409,
+      `账号「${account.label}」正在等待 OAuth 授权，请在浏览器完成登录。`,
+      'account_login_pending',
+    );
+  }
+  return account;
+}
+
+function isAuthError(message) {
+  return /auth|login|unauthorized|401|token|credential|凭据|登录/i.test(String(message || ''));
+}
+
 function buildPrompt(messages, extraSystemParts, modelMeta) {
   if (!Array.isArray(messages) || messages.length === 0) {
     throw new ApiError(400, 'messages must be a non-empty array');
@@ -438,17 +553,30 @@ function createBackendContext(req, res) {
   };
 }
 
-async function runQuery({ modelMeta, prompt, systemPrompt, contextWindow, abortController, onText, onThinking }) {
+async function runQuery({ modelMeta, prompt, systemPrompt, contextWindow, account, abortController, onText, onThinking }) {
   let text = '';
   let thinking = '';
   let result = null;
+
+  if (!account) throw new ApiError(500, 'No account selected', 'account_not_selected');
+  let authOptions;
+  if (account.authType === 'env') {
+    if (!PAT) throw new ApiError(503, 'PAT 未配置', 'pat_missing');
+    authOptions = { auth: sdk.accessToken(PAT) };
+  } else {
+    if (!account.configDir) throw new ApiError(500, '账号配置目录缺失', 'account_invalid');
+    authOptions = {
+      auth: sdk.qodercliAuth(),
+      env: { QODERCN_CONFIG_DIR: account.configDir, QODERCN_CLI_HOME: account.configDir },
+    };
+  }
 
   const query = sdk.query({
     prompt,
     options: {
       cwd: WORKDIR,
       model: modelMeta.id,
-      auth: sdk.accessToken(PAT),
+      ...authOptions,
       pathToQoderWorkerRuntime: RUNTIME_PATH,
       maxTurns: 1,
       permissionMode: 'default',
@@ -504,6 +632,7 @@ async function handleChat(req, res) {
 
   const modelMeta = resolveModel(body.model);
   const contextWindow = resolveContextWindow(body.context_window ?? body.contextWindow, modelMeta);
+  const account = resolveRequestAccount(req, body);
   const stream = body.stream === true;
   const includeUsage = stream && body.stream_options?.include_usage === true;
   const { systemPrompt, prompt } = buildPrompt(body.messages, [], modelMeta);
@@ -511,6 +640,7 @@ async function handleChat(req, res) {
   const created = Math.floor(Date.now() / 1000);
   const startedAt = Date.now();
   res.setHeader('X-Qoder-Context-Window', String(contextWindow ?? modelMeta.defaultContextWindow));
+  res.setHeader('X-Qoder-Account', account.id);
 
   await acquire();
   const ctx = createBackendContext(req, res);
@@ -539,6 +669,7 @@ async function handleChat(req, res) {
       prompt,
       systemPrompt,
       contextWindow,
+      account,
       abortController: ctx.abortController,
       onText: stream
         ? async (piece) => writeRaw(res, openAiChunk(id, created, modelMeta.alias, { content: piece }))
@@ -554,6 +685,13 @@ async function handleChat(req, res) {
         : err instanceof ApiError
           ? err
           : new ApiError(502, err?.message || String(err));
+      if (account.authType === 'oauth' && isAuthError(failure.message)) {
+        try {
+          markAccountAuthError(ACCOUNT_STORE, account);
+        } catch {
+          // Account metadata write is best-effort.
+        }
+      }
     }
   } finally {
     if (heartbeat) clearInterval(heartbeat);
@@ -563,6 +701,12 @@ async function handleChat(req, res) {
 
   if (ctx.clientClosed) return;
   if (failure) throw failure;
+
+  try {
+    markAccountUsed(ACCOUNT_STORE, account);
+  } catch {
+    // Account metadata write is best-effort.
+  }
 
   const { text, thinking, result } = output;
   const finishReason = mapOpenAiFinish(result?.stop_reason || 'end_turn');
@@ -605,7 +749,7 @@ async function handleChat(req, res) {
     });
   }
 
-  console.log(`[${new Date().toISOString()}] openai model=${modelMeta.id} ctx=${contextWindow ?? modelMeta.defaultContextWindow} stream=${stream} ms=${Date.now() - startedAt} chars=${text.length}`);
+  console.log(`[${new Date().toISOString()}] openai account=${account.id} model=${modelMeta.id} ctx=${contextWindow ?? modelMeta.defaultContextWindow} stream=${stream} ms=${Date.now() - startedAt} chars=${text.length}`);
 }
 
 function anthropicEvent(res, type, data) {
@@ -618,6 +762,7 @@ async function handleMessages(req, res) {
 
   const modelMeta = resolveModel(body.model, { claudeFallback: true });
   const contextWindow = resolveContextWindow(body.context_window ?? body.contextWindow, modelMeta);
+  const account = resolveRequestAccount(req, body);
   const stream = body.stream === true;
   const extraSystem = systemText(body.system) ? [systemText(body.system)] : [];
   const { systemPrompt, prompt } = buildPrompt(body.messages, extraSystem, modelMeta);
@@ -625,6 +770,7 @@ async function handleMessages(req, res) {
   const id = `msg_${randomUUID().replace(/-/g, '')}`;
   const startedAt = Date.now();
   res.setHeader('X-Qoder-Context-Window', String(contextWindow ?? modelMeta.defaultContextWindow));
+  res.setHeader('X-Qoder-Account', account.id);
 
   await acquire();
   const ctx = createBackendContext(req, res);
@@ -692,6 +838,7 @@ async function handleMessages(req, res) {
       prompt,
       systemPrompt,
       contextWindow,
+      account,
       abortController: ctx.abortController,
       onThinking: stream && exposeThinking
         ? async (piece) => {
@@ -719,6 +866,13 @@ async function handleMessages(req, res) {
         : err instanceof ApiError
           ? err
           : new ApiError(502, err?.message || String(err));
+      if (account.authType === 'oauth' && isAuthError(failure.message)) {
+        try {
+          markAccountAuthError(ACCOUNT_STORE, account);
+        } catch {
+          // Account metadata write is best-effort.
+        }
+      }
     }
   } finally {
     if (heartbeat) clearInterval(heartbeat);
@@ -728,6 +882,12 @@ async function handleMessages(req, res) {
 
   if (ctx.clientClosed) return;
   if (failure) throw failure;
+
+  try {
+    markAccountUsed(ACCOUNT_STORE, account);
+  } catch {
+    // Account metadata write is best-effort.
+  }
 
   const { text, thinking, result } = output;
   const stopReason = mapAnthropicStop(result?.stop_reason || 'end_turn');
@@ -762,7 +922,7 @@ async function handleMessages(req, res) {
     });
   }
 
-  console.log(`[${new Date().toISOString()}] anthropic model=${modelMeta.id} ctx=${contextWindow ?? modelMeta.defaultContextWindow} stream=${stream} ms=${Date.now() - startedAt} chars=${text.length}`);
+  console.log(`[${new Date().toISOString()}] anthropic account=${account.id} model=${modelMeta.id} ctx=${contextWindow ?? modelMeta.defaultContextWindow} stream=${stream} ms=${Date.now() - startedAt} chars=${text.length}`);
 }
 
 function serveUi(req, res) {
@@ -817,10 +977,13 @@ const server = http.createServer(async (req, res) => {
         lan_base_url: LAN_BASE_URL,
         openai_base_url: `${LAN_BASE_URL}/v1`,
         anthropic_base_url: LAN_BASE_URL,
+        accounts: ACCOUNT_STORE.accounts.length,
+        default_account_id: ACCOUNT_STORE.defaultAccountId,
       });
       return;
     }
     if (!checkAuth(req)) throw new ApiError(401, 'Invalid API key', 'invalid_api_key');
+    refreshAccountStore();
     if (req.method === 'GET' && url.pathname === '/v1/models') {
       sendJson(res, 200, {
         object: 'list',
@@ -841,6 +1004,91 @@ const server = http.createServer(async (req, res) => {
         })),
       });
       return;
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/accounts') {
+      sendJson(res, 200, {
+        default_account_id: ACCOUNT_STORE.defaultAccountId,
+        load_balance: ACCOUNT_STORE.loadBalance !== false,
+        healthy_accounts: ACCOUNT_STORE.accounts.filter((account) => account.status === 'ready').length,
+        accounts: ACCOUNT_STORE.accounts.map((account) => publicAccount(account, ACCOUNT_STORE)),
+      });
+      return;
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/accounts/settings') {
+      const body = await readJson(req);
+      if (typeof body?.loadBalance !== 'boolean') {
+        throw new ApiError(400, 'loadBalance must be a boolean', 'invalid_settings');
+      }
+      setLoadBalance(ACCOUNT_STORE, body.loadBalance);
+      sendJson(res, 200, {
+        load_balance: ACCOUNT_STORE.loadBalance,
+        healthy_accounts: ACCOUNT_STORE.accounts.filter((account) => account.status === 'ready').length,
+        default_account_id: ACCOUNT_STORE.defaultAccountId,
+        accounts: ACCOUNT_STORE.accounts.map((account) => publicAccount(account, ACCOUNT_STORE)),
+      });
+      return;
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/accounts') {
+      const body = await readJson(req);
+      let account;
+      try {
+        account = addOAuthAccount(ACCOUNT_STORE, body?.label);
+      } catch (err) {
+        throw new ApiError(400, err?.message || 'Failed to create account', 'account_create_failed');
+      }
+      sendJson(res, 201, {
+        account: publicAccount(account, ACCOUNT_STORE),
+        login_command: loginCommandHint(account),
+      });
+      return;
+    }
+    const accountRoute = url.pathname.match(/^\/v1\/accounts\/([^/]+)(?:\/(test|default|login))?$/);
+    if (accountRoute) {
+      const accountId = decodeURIComponent(accountRoute[1]);
+      const action = accountRoute[2] || '';
+      const account = findAccount(ACCOUNT_STORE, accountId);
+      if (!account) throw new ApiError(404, `Account '${accountId}' not found`, 'account_not_found');
+      if (req.method === 'POST' && action === 'test') {
+        await checkAccount(ACCOUNT_STORE, account, { pat: PAT });
+        sendJson(res, 200, { account: publicAccount(account, ACCOUNT_STORE) });
+        return;
+      }
+      if (req.method === 'POST' && action === 'login') {
+        if (account.authType !== 'oauth') {
+          throw new ApiError(400, '只有 OAuth 账号需要登录', 'not_oauth_account');
+        }
+        try {
+          const result = await startOAuthLogin(ACCOUNT_STORE, account);
+          sendJson(res, 200, {
+            account: publicAccount(account, ACCOUNT_STORE),
+            login_url: result.url || null,
+            login_pending: account.status === 'login_pending',
+            login_command: loginCommandHint(account),
+          });
+        } catch (err) {
+          throw new ApiError(502, `启动 OAuth 登录失败：${err?.message || err}`, 'login_start_failed');
+        }
+        return;
+      }
+      if (req.method === 'POST' && action === 'default') {
+        setDefaultAccount(ACCOUNT_STORE, account.id);
+        sendJson(res, 200, {
+          default_account_id: ACCOUNT_STORE.defaultAccountId,
+          accounts: ACCOUNT_STORE.accounts.map((item) => publicAccount(item, ACCOUNT_STORE)),
+        });
+        return;
+      }
+      if (req.method === 'DELETE' && !action) {
+        cancelOAuthLogin(account.id);
+        const removed = removeAccount(ACCOUNT_STORE, account.id);
+        sendJson(res, 200, {
+          removed: removed.id,
+          default_account_id: ACCOUNT_STORE.defaultAccountId,
+          accounts: ACCOUNT_STORE.accounts.map((item) => publicAccount(item, ACCOUNT_STORE)),
+        });
+        return;
+      }
+      throw new ApiError(405, `Unsupported account action: ${req.method} ${url.pathname}`, 'method_not_allowed');
     }
     if (req.method === 'POST' && url.pathname === '/v1/chat/completions') {
       await handleChat(req, res);
@@ -873,4 +1121,22 @@ server.listen(PORT, HOST, () => {
   console.log(`Models: ${MODEL_CATALOG.map((m) => m.alias).join(', ')}`);
   console.log(`Auth: ${PROXY_API_KEY ? 'Bearer / x-api-key required' : 'none (loopback only)'}`);
   console.log(`UI auto auth: ${UI_AUTO_AUTH}${UI_AUTO_AUTH === 'off' ? '' : ' (key embedded for matching clients)'}`);
+  console.log(`Accounts: ${ACCOUNT_STORE.accounts.length} (default: ${ACCOUNT_STORE.defaultAccountId || 'none'})`);
+
+  async function refreshAccountHealth() {
+    refreshAccountStore();
+    for (const account of [...ACCOUNT_STORE.accounts]) {
+      if (account.status === 'login_pending') continue;
+      try {
+        await checkAccount(ACCOUNT_STORE, account, { pat: PAT });
+        console.log(`[accounts] ${account.id} -> ${account.status}`);
+      } catch (err) {
+        console.error(`[accounts] ${account.id} check failed: ${err?.message || err}`);
+      }
+    }
+  }
+
+  console.log(`Load balance: ${ACCOUNT_STORE.loadBalance !== false ? 'on (healthy accounts only)' : 'off (default account)'}`);
+  setTimeout(refreshAccountHealth, 2500).unref?.();
+  setInterval(refreshAccountHealth, ACCOUNT_HEALTH_INTERVAL_MS).unref?.();
 });

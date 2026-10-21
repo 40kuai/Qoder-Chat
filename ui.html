@@ -92,6 +92,8 @@
       transition: border-color 0.15s ease, background 0.15s ease;
     }
     .model-btn:hover { border-color: var(--border-strong); background: var(--panel-3); }
+    .model-btn[data-status="login_required"] { border-color: rgba(242, 180, 92, 0.35); }
+    .model-btn[data-status="error"] { border-color: rgba(255, 107, 122, 0.35); }
     .model-btn-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .model-btn-name { font-size: 14px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .model-btn-id { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
@@ -168,6 +170,73 @@
     .context-pill:hover { color: var(--text); border-color: var(--border-strong); }
     .context-pill.active { color: #c9d4ff; background: var(--accent-soft); border-color: rgba(111, 140, 255, 0.4); }
     .context-block .hint { font-size: 10px; line-height: 1.5; }
+
+    .top-account { font-size: 11px; color: var(--accent-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .top-sep { color: var(--muted-2); }
+
+    .accounts-list { display: flex; flex-direction: column; gap: 9px; }
+    .account-row {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--border); border-radius: 12px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .account-main { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .account-title { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 13px; }
+    .account-title b { font-weight: 650; }
+    .account-meta { font-size: 10.5px; color: var(--muted-2); line-height: 1.5; }
+    .account-error { font-size: 11px; color: var(--danger); line-height: 1.5; overflow-wrap: anywhere; }
+    .account-actions { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; flex: none; }
+    .account-actions button {
+      padding: 4px 8px;
+      border: 1px solid var(--border); border-radius: 7px;
+      background: transparent; color: var(--muted);
+      font-size: 10.5px;
+    }
+    .account-actions button:hover { color: var(--text); border-color: var(--border-strong); }
+    .account-actions button.danger:hover { color: var(--danger); border-color: rgba(255, 107, 122, 0.4); }
+    .account-actions button:disabled { opacity: 0.45; cursor: default; }
+    .account-create { display: flex; gap: 8px; }
+    .account-create input {
+      flex: 1; min-width: 0;
+      padding: 9px 11px;
+      background: #0a0f18; border: 1px solid var(--border); border-radius: 9px;
+      font-size: 12px; outline: none;
+    }
+    .account-create input:focus { border-color: rgba(111, 140, 255, 0.55); }
+    .account-create button {
+      flex: none;
+      padding: 8px 12px;
+      border: 1px solid rgba(111, 140, 255, 0.3); border-radius: 9px;
+      background: var(--accent-soft); color: #c6d2ff;
+      font-size: 11.5px; font-weight: 600;
+    }
+    .balance-card {
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding: 12px;
+      border: 1px solid rgba(111, 140, 255, 0.22);
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(111, 140, 255, 0.08), rgba(56, 214, 189, 0.04));
+    }
+    .balance-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .balance-main b { font-size: 12.5px; }
+    .balance-main span { font-size: 10.5px; line-height: 1.5; color: var(--muted); }
+    .switch-btn {
+      flex: none;
+      padding: 6px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-size: 11px; font-weight: 650;
+    }
+    .switch-btn.on { color: #6ff0c8; border-color: rgba(69, 214, 160, 0.35); background: rgba(69, 214, 160, 0.1); }
+    .snippet-head-actions { display: flex; gap: 5px; }
+    .st-ready { color: #6ff0c8; background: rgba(69, 214, 160, 0.12); border-color: rgba(69, 214, 160, 0.28); }
+    .st-login_required { color: #f4cf94; background: rgba(242, 180, 92, 0.1); border-color: rgba(242, 180, 92, 0.28); }
+    .st-login_pending { color: #9fb3ff; background: rgba(111, 140, 255, 0.1); border-color: rgba(111, 140, 255, 0.3); }
+    .st-error { color: var(--danger); background: rgba(255, 107, 122, 0.1); border-color: rgba(255, 107, 122, 0.28); }
+    .st-unknown { color: var(--muted); background: rgba(255, 255, 255, 0.05); }
 
     .new-chat {
       display: flex; align-items: center; gap: 9px;
@@ -578,6 +647,12 @@
       .modal { max-height: 92vh; border-radius: 20px 20px 0 0; }
       .conn-grid { grid-template-columns: 1fr; }
       .modal-head, .modal-body { padding-left: 16px; padding-right: 16px; }
+      .top-account, .top-sep { display: none; }
+      .account-row { flex-direction: column; }
+      .account-actions { justify-content: flex-start; }
+      .account-create { flex-direction: column; }
+      .balance-card { flex-direction: column; align-items: stretch; }
+      .switch-btn { align-self: flex-start; }
     }
   </style>
 </head>
@@ -590,6 +665,24 @@
           <div class="brand-name">Qoder Chat</div>
           <div class="brand-sub">OpenAI · Claude 双协议</div>
         </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">账号</div>
+        <div class="model-picker" id="accountPicker">
+          <button class="model-btn" id="accountBtn" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span class="model-btn-main">
+              <span class="model-btn-name" id="accountBtnName">加载中…</span>
+              <span class="model-btn-id" id="accountBtnId">账号池</span>
+            </span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="model-menu" id="accountMenu" role="listbox" hidden></div>
+        </div>
+        <button class="new-chat secondary" id="manageAccounts" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          管理账号
+        </button>
       </div>
 
       <div class="section">
@@ -658,6 +751,8 @@
         </button>
         <div class="topbar-title">
           <span>对话</span>
+          <span class="top-account" id="topAccount">—</span>
+          <span class="top-sep">·</span>
           <span class="top-model" id="topModel">—</span>
         </div>
         <div class="topbar-right">
@@ -668,6 +763,11 @@
       <div class="auth-banner" id="authBanner" hidden>
         <span>服务端要求 API Key，请先在左侧“连接设置”中填写。</span>
         <button id="bannerKey" type="button">去设置</button>
+      </div>
+
+      <div class="auth-banner" id="accountBanner" hidden>
+        <span id="accountBannerText">当前账号不可用。</span>
+        <button id="bannerAccounts" type="button">管理账号</button>
       </div>
 
       <div class="chat-scroll" id="chatScroll">
@@ -711,6 +811,48 @@
     </main>
   </div>
 
+  <div class="modal-backdrop" id="accountsModal" hidden>
+    <section class="modal account-modal" role="dialog" aria-modal="true" aria-labelledby="accountsTitle">
+      <header class="modal-head">
+        <div>
+          <h2 id="accountsTitle">账号池</h2>
+          <p>只管理你或团队自有的账号。使用官方 OAuth 授权，健康账号自动负载均衡；只停用异常账号，不做额度轮换。</p>
+        </div>
+        <button class="icon-btn" id="closeAccounts" type="button" aria-label="关闭">×</button>
+      </header>
+      <div class="modal-body">
+        <div class="balance-card">
+          <div class="balance-main">
+            <b>自动负载均衡</b>
+            <span>仅在健康账号间轮询；异常账号自动停用。每 10 分钟健康检查。</span>
+          </div>
+          <button id="toggleBalance" class="switch-btn" type="button">已开启</button>
+        </div>
+        <div class="account-create">
+          <input id="newAccountLabel" type="text" maxlength="40" placeholder="可选备注名（留空自动使用授权账号名）">
+          <button id="createAccount" type="button">创建并授权</button>
+        </div>
+        <p class="hint">名称可留空：登录成功后会自动使用官方授权返回的账号身份命名；手填名称则作为备注保留。</p>
+        <div class="snippet-box" id="loginUrlBox" hidden>
+          <div class="snippet-head">
+            <span>OAuth 授权链接</span>
+            <div class="snippet-head-actions">
+              <button id="openLoginUrl" type="button">打开授权</button>
+              <button id="copyLoginUrl" type="button">复制链接</button>
+            </div>
+          </div>
+          <pre class="snippet" id="loginUrl"></pre>
+        </div>
+        <div class="snippet-box" id="loginCommandBox" hidden>
+          <div class="snippet-head"><span>终端登录命令（备用）</span><button id="copyLoginCommand" type="button">复制</button></div>
+          <pre class="snippet" id="loginCommand"></pre>
+        </div>
+        <div id="accountsList" class="accounts-list"></div>
+        <p class="modal-note">状态由官方 CLI 健康检查更新；OAuth 账号失效时运行对应登录命令即可重新授权。不会自动切换账号。</p>
+      </div>
+    </section>
+  </div>
+
   <div class="modal-backdrop" id="integrationModal" hidden>
     <section class="modal" role="dialog" aria-modal="true" aria-labelledby="integrationTitle">
       <header class="modal-head">
@@ -737,6 +879,10 @@
           <div class="conn-item">
             <div class="conn-label">模型 ID</div>
             <div class="conn-value"><code id="connModel">deepseek-flash</code><button type="button" data-copy="model">复制</button></div>
+          </div>
+          <div class="conn-item">
+            <div class="conn-label">账号</div>
+            <div class="conn-value"><code id="connAccount">—</code><button type="button" data-copy="account">复制</button></div>
           </div>
           <div class="conn-item">
             <div class="conn-label">上下文窗口</div>
@@ -772,6 +918,29 @@
         sidebar: $('sidebar'),
         backdrop: $('backdrop'),
         menuBtn: $('menuBtn'),
+        accountPicker: $('accountPicker'),
+        accountBtn: $('accountBtn'),
+        accountBtnName: $('accountBtnName'),
+        accountBtnId: $('accountBtnId'),
+        accountMenu: $('accountMenu'),
+        manageAccounts: $('manageAccounts'),
+        accountBanner: $('accountBanner'),
+        accountBannerText: $('accountBannerText'),
+        bannerAccounts: $('bannerAccounts'),
+        accountsModal: $('accountsModal'),
+        closeAccounts: $('closeAccounts'),
+        newAccountLabel: $('newAccountLabel'),
+        createAccountBtn: $('createAccount'),
+        toggleBalance: $('toggleBalance'),
+        loginUrlBox: $('loginUrlBox'),
+        loginUrl: $('loginUrl'),
+        openLoginUrl: $('openLoginUrl'),
+        copyLoginUrl: $('copyLoginUrl'),
+        loginCommandBox: $('loginCommandBox'),
+        loginCommand: $('loginCommand'),
+        copyLoginCommandBtn: $('copyLoginCommand'),
+        accountsList: $('accountsList'),
+        topAccount: $('topAccount'),
         modelPicker: $('modelPicker'),
         modelBtn: $('modelBtn'),
         modelBtnName: $('modelBtnName'),
@@ -791,6 +960,7 @@
         connOpenAiBase: $('connOpenAiBase'),
         connKey: $('connKey'),
         connModel: $('connModel'),
+        connAccount: $('connAccount'),
         connContext: $('connContext'),
         integrationTabs: $('integrationTabs'),
         snippet: $('snippet'),
@@ -823,6 +993,14 @@
         streaming: false,
         controller: null,
         apiKey: localStorage.getItem('qoder.apiKey') || '',
+        accounts: [],
+        account: null,
+        defaultAccountId: null,
+        loadBalance: true,
+        healthyCount: 0,
+        lastLoginCommand: '',
+        lastLoginUrl: '',
+        accountPollTimer: null,
         contextByModel: (() => {
           try {
             const raw = JSON.parse(localStorage.getItem('qoder.contextByModel') || '{}');
@@ -898,6 +1076,436 @@
       function closeSidebar() {
         els.sidebar.classList.remove('open');
         els.backdrop.hidden = true;
+      }
+
+      /* ---------- accounts ---------- */
+      function accountStatusMeta(status) {
+        const map = {
+          ready: { label: '可用', cls: 'st-ready' },
+          login_required: { label: '需登录', cls: 'st-login_required' },
+          login_pending: { label: '等待授权', cls: 'st-login_pending' },
+          error: { label: '异常', cls: 'st-error' },
+          unknown: { label: '未验证', cls: 'st-unknown' },
+        };
+        return map[status] || { label: status || '未知', cls: 'st-unknown' };
+      }
+
+      function formatWhen(value) {
+        if (!value) return '—';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '—';
+        return date.toLocaleString('zh-CN', {
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+
+      async function accountFetch(pathname, options = {}) {
+        const response = await fetch(pathname, {
+          ...options,
+          headers: { ...(options.headers || {}), ...authHeaders() },
+        });
+        const payload = await response.json().catch(() => null);
+        if (response.status === 401) showAuth(true);
+        if (!response.ok) throw new Error(payload?.error?.message || `HTTP ${response.status}`);
+        return payload;
+      }
+
+      function renderAccountMenu() {
+        if (!state.accounts.length) {
+          els.accountMenu.innerHTML =
+            '<div class="model-item"><span class="mi-main"><span class="mi-name">还没有账号</span>' +
+            '<span class="mi-id">点击“管理账号”创建并登录</span></span></div>';
+          return;
+        }
+        const healthy = Number.isFinite(Number(state.healthyCount))
+          ? Number(state.healthyCount)
+          : state.accounts.filter((account) => account.status === 'ready').length;
+        const autoItem =
+          `<button class="model-item${state.loadBalance ? ' active' : ''}" type="button" data-account-mode="auto">` +
+            `<span class="mi-main"><span class="mi-name">自动负载均衡</span><span class="mi-id">健康账号轮询</span></span>` +
+            `<span class="mi-badges"><span class="badge ${healthy > 0 ? 'free' : 'st-error'}">${healthy} 健康</span></span>` +
+            `<span class="mi-check">${state.loadBalance ? '✓' : ''}</span>` +
+          `</button>`;
+        const accountItems = state.accounts.map((account) => {
+          const meta = accountStatusMeta(account.status);
+          const active = !state.loadBalance && state.account && account.id === state.account.id;
+          return (
+            `<button class="model-item${active ? ' active' : ''}" type="button" role="option" aria-selected="${active}" data-account="${escapeHtml(account.id)}">` +
+              `<span class="mi-main"><span class="mi-name">${escapeHtml(account.label)}</span>` +
+              `<span class="mi-id">${account.auth_type === 'oauth' ? 'OAuth' : 'PAT'}</span></span>` +
+              `<span class="mi-badges">${account.is_default ? '<span class="badge free">默认</span>' : ''}` +
+              `<span class="badge ${meta.cls}">${meta.label}</span></span>` +
+              `<span class="mi-check">${active ? '✓' : ''}</span>` +
+            `</button>`
+          );
+        }).join('');
+        els.accountMenu.innerHTML = autoItem + accountItems;
+      }
+
+      function updateAccountUi() {
+        const account = state.account;
+        const authMissing = !els.authBanner.hidden;
+        const healthy = Number.isFinite(Number(state.healthyCount))
+          ? Number(state.healthyCount)
+          : state.accounts.filter((item) => item.status === 'ready').length;
+
+        if (state.loadBalance) {
+          els.accountBtnName.textContent = '自动负载均衡';
+          els.accountBtnId.textContent = healthy > 0 ? `${healthy} 个健康账号` : '没有健康账号';
+          els.accountBtn.dataset.status = healthy > 0 ? 'ready' : 'error';
+          els.topAccount.textContent = '自动';
+          els.accountBanner.hidden = authMissing || healthy > 0;
+          if (!els.accountBanner.hidden) {
+            els.accountBannerText.textContent = '没有健康账号可用。请打开“管理账号”登录或修复账号。';
+          }
+        } else if (!account) {
+          els.accountBtnName.textContent = state.accounts.length ? '未选择账号' : '无账号';
+          els.accountBtnId.textContent = state.accounts.length ? '请选择一个账号' : '打开“管理账号”创建';
+          els.accountBtn.dataset.status = 'unknown';
+          els.topAccount.textContent = '—';
+          els.accountBanner.hidden = true;
+          if (!authMissing) {
+            els.accountBanner.hidden = false;
+            els.accountBannerText.textContent = state.accounts.length
+              ? '请选择一个账号后再开始对话。'
+              : '账号池为空，请打开“管理账号”创建并登录账号。';
+          }
+        } else {
+          const meta = accountStatusMeta(account.status);
+          els.accountBtnName.textContent = account.label;
+          els.accountBtnId.textContent =
+            `${account.auth_type === 'oauth' ? 'OAuth' : 'PAT'} · ${meta.label}${account.is_default ? ' · 默认' : ''}`;
+          els.accountBtn.dataset.status = account.status;
+          els.topAccount.textContent = account.label;
+          const blocked = ['login_required', 'login_pending', 'error'].includes(account.status);
+          els.accountBanner.hidden = authMissing || !blocked;
+          if (!els.accountBanner.hidden) {
+            if (account.status === 'login_required') {
+              els.accountBannerText.textContent = `账号「${account.label}」需要登录。请打开“管理账号”重新授权。`;
+            } else if (account.status === 'login_pending') {
+              els.accountBannerText.textContent = `账号「${account.label}」正在等待 OAuth 授权，请在浏览器完成登录。`;
+            } else {
+              els.accountBannerText.textContent = `账号「${account.label}」不可用：${account.last_error || '未知错误'}`;
+            }
+          }
+        }
+
+        renderAccountMenu();
+        updateComposer();
+      }
+
+      async function setLoadBalanceMode(enabled, { quiet = false } = {}) {
+        try {
+          const data = await accountFetch('/v1/accounts/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ loadBalance: enabled }),
+          });
+          state.loadBalance = Boolean(data.load_balance);
+          state.accounts = Array.isArray(data.accounts) ? data.accounts : state.accounts;
+          state.defaultAccountId = data.default_account_id || state.defaultAccountId;
+          state.healthyCount = Number.isFinite(Number(data.healthy_accounts))
+            ? Number(data.healthy_accounts)
+            : state.accounts.filter((account) => account.status === 'ready').length;
+          if (!state.loadBalance) {
+            const saved = localStorage.getItem('qoder.account');
+            const preferred =
+              state.accounts.find((account) => account.id === saved && account.status === 'ready') ||
+              state.accounts.find((account) => account.is_default && account.status === 'ready') ||
+              state.accounts.find((account) => account.status === 'ready') ||
+              state.accounts[0] ||
+              null;
+            state.account = preferred;
+            if (preferred) localStorage.setItem('qoder.account', preferred.id);
+          }
+          updateAccountUi();
+          if (!els.accountsModal.hidden) renderAccountsModal();
+          if (!els.integrationModal.hidden) renderIntegration();
+          if (!quiet) showToast(state.loadBalance ? '已开启自动负载均衡' : '已切换为手动账号');
+          return true;
+        } catch (error) {
+          showToast(`设置失败：${error.message || error}`);
+          return false;
+        }
+      }
+
+      async function selectAccount(id, { silent = false } = {}) {
+        const account = state.accounts.find((item) => item.id === id);
+        if (!account) return;
+        if (state.loadBalance) {
+          const ok = await setLoadBalanceMode(false, { quiet: true });
+          if (!ok) return;
+        }
+        const current = state.accounts.find((item) => item.id === id) || account;
+        state.account = current;
+        localStorage.setItem('qoder.account', id);
+        updateAccountUi();
+        if (!els.integrationModal.hidden) renderIntegration();
+        if (!silent) {
+          closeAccountMenu();
+          closeSidebar();
+        }
+      }
+
+      async function loadAccounts() {
+        try {
+          const data = await accountFetch('/v1/accounts');
+          state.accounts = Array.isArray(data.accounts) ? data.accounts : [];
+          state.defaultAccountId = data.default_account_id || null;
+          state.loadBalance = data.load_balance !== false;
+          state.healthyCount = Number.isFinite(Number(data.healthy_accounts))
+            ? Number(data.healthy_accounts)
+            : state.accounts.filter((account) => account.status === 'ready').length;
+          const saved = localStorage.getItem('qoder.account');
+          const preferred =
+            state.accounts.find((account) => account.id === saved) ||
+            state.accounts.find((account) => account.is_default) ||
+            state.accounts.find((account) => account.id === state.defaultAccountId) ||
+            state.accounts[0] ||
+            null;
+          state.account = preferred;
+          updateAccountUi();
+          if (!els.accountsModal.hidden) renderAccountsModal();
+          if (!els.integrationModal.hidden) renderIntegration();
+          scheduleAccountPoll();
+        } catch (error) {
+          state.accounts = [];
+          state.account = null;
+          state.healthyCount = 0;
+          updateAccountUi();
+          showToast(`加载账号失败：${error.message || error}`);
+        }
+      }
+
+      function scheduleAccountPoll() {
+        clearTimeout(state.accountPollTimer);
+        if (!state.accounts.some((account) => account.status === 'login_pending')) return;
+        state.accountPollTimer = setTimeout(() => {
+          loadAccounts();
+        }, 2500);
+      }
+
+      function renderAccountsModal() {
+        els.toggleBalance.textContent = state.loadBalance ? '已开启' : '已关闭';
+        els.toggleBalance.classList.toggle('on', state.loadBalance);
+
+        if (!state.accounts.length) {
+          els.accountsList.innerHTML =
+            '<div class="account-row"><div class="account-main"><div class="account-title"><b>还没有账号</b></div>' +
+            '<div class="account-meta">在上方输入名称创建一个 OAuth 账号。</div></div></div>';
+        } else {
+          els.accountsList.innerHTML = state.accounts.map((account) => {
+            const meta = accountStatusMeta(account.status);
+            const pending = account.status === 'login_pending';
+            const rowLoginUrl = account.login_url || (pending ? state.lastLoginUrl : '');
+            return (
+              `<div class="account-row" data-account-id="${escapeHtml(account.id)}">` +
+                `<div class="account-main">` +
+                  `<div class="account-title"><b>${escapeHtml(account.label)}</b>` +
+                    `<span class="badge ${meta.cls}">${meta.label}</span>` +
+                    `<span class="badge ghost">${account.auth_type === 'oauth' ? 'OAuth' : 'PAT'}</span>` +
+                    `${account.is_default ? '<span class="badge free">默认</span>' : ''}` +
+                  `</div>` +
+                  `<div class="account-meta">${account.identity && account.identity !== account.label ? `账号：${escapeHtml(account.identity)} · ` : ''}最近检查：${formatWhen(account.last_check_at)} · 最近使用：${formatWhen(account.last_used_at)}</div>` +
+                  `${account.last_error ? `<div class="account-error">${escapeHtml(account.last_error)}</div>` : ''}` +
+                `</div>` +
+                `<div class="account-actions">` +
+                  `${!pending ? '<button type="button" data-account-action="test">测试</button>' : ''}` +
+                  `${!account.is_default && !pending ? '<button type="button" data-account-action="default">设为默认</button>' : ''}` +
+                  `${account.auth_type === 'oauth'
+                    ? pending
+                      ? rowLoginUrl
+                        ? '<button type="button" data-account-action="open-login">打开授权</button><button type="button" data-account-action="copy-login-url">复制链接</button>'
+                        : '<button type="button" data-account-action="refresh">刷新</button>'
+                      : `<button type="button" data-account-action="login-url">${account.status === 'ready' ? '重新登录' : '登录'}</button>`
+                    : ''}` +
+                  `<button type="button" class="danger" data-account-action="delete">删除</button>` +
+                `</div>` +
+              `</div>`
+            );
+          }).join('');
+        }
+
+        const pendingUrl = state.accounts.find((account) => account.status === 'login_pending' && account.login_url)?.login_url;
+        const url = pendingUrl || (state.lastLoginUrl && state.accounts.some((account) => account.status === 'login_pending') ? state.lastLoginUrl : '');
+        if (url) {
+          els.loginUrlBox.hidden = false;
+          els.loginUrl.textContent = url;
+          els.loginCommandBox.hidden = true;
+        } else {
+          els.loginUrlBox.hidden = true;
+          if (state.lastLoginCommand) {
+            els.loginCommandBox.hidden = false;
+            els.loginCommand.textContent = state.lastLoginCommand;
+          } else {
+            els.loginCommandBox.hidden = true;
+          }
+        }
+      }
+
+      function openAccountsModal() {
+        closeIntegrationModal();
+        renderAccountsModal();
+        els.accountsModal.hidden = false;
+        closeSidebar();
+      }
+
+      function closeAccountsModal() {
+        els.accountsModal.hidden = true;
+      }
+
+      async function startAccountLogin(id) {
+        try {
+          const data = await accountFetch(`/v1/accounts/${encodeURIComponent(id)}/login`, { method: 'POST' });
+          state.lastLoginUrl = data.login_url || '';
+          state.lastLoginCommand = data.login_command || `./accounts.sh login ${id}`;
+          await loadAccounts();
+          renderAccountsModal();
+          if (data.login_url) {
+            showToast('授权链接已生成，请打开链接完成登录');
+          } else if (data.account?.status === 'ready') {
+            showToast('账号已登录');
+          } else {
+            showToast('登录已启动，正在等待授权链接，请稍后刷新');
+          }
+        } catch (error) {
+          state.lastLoginCommand = `./accounts.sh login ${id}`;
+          renderAccountsModal();
+          showToast(`生成授权链接失败：${error.message || error}`);
+        }
+      }
+
+      async function createAccount() {
+        const label = els.newAccountLabel.value.trim();
+        els.createAccountBtn.disabled = true;
+        const originalText = els.createAccountBtn.textContent;
+        els.createAccountBtn.textContent = '正在生成授权链接…';
+        try {
+          const data = await accountFetch('/v1/accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ label }),
+          });
+          state.lastLoginCommand = data.login_command || '';
+          els.newAccountLabel.value = '';
+          await startAccountLogin(data.account.id);
+        } catch (error) {
+          showToast(`创建失败：${error.message || error}`);
+        } finally {
+          els.createAccountBtn.disabled = false;
+          els.createAccountBtn.textContent = originalText;
+        }
+      }
+
+      async function testAccount(id) {
+        const row = [...els.accountsList.querySelectorAll('[data-account-id]')].find((item) => item.dataset.accountId === id);
+        const button = row?.querySelector('[data-account-action="test"]');
+        if (button) {
+          button.disabled = true;
+          button.textContent = '测试中…';
+        }
+        try {
+          const data = await accountFetch(`/v1/accounts/${encodeURIComponent(id)}/test`, { method: 'POST' });
+          state.accounts = state.accounts.map((item) => (item.id === id ? data.account : item));
+          state.healthyCount = state.accounts.filter((item) => item.status === 'ready').length;
+          if (state.account?.id === id) state.account = data.account;
+          updateAccountUi();
+          renderAccountsModal();
+          showToast(`测试完成：${accountStatusMeta(data.account.status).label}`);
+        } catch (error) {
+          showToast(`测试失败：${error.message || error}`);
+          if (button) {
+            button.disabled = false;
+            button.textContent = '测试';
+          }
+        }
+      }
+
+      async function makeDefaultAccount(id) {
+        try {
+          const data = await accountFetch(`/v1/accounts/${encodeURIComponent(id)}/default`, { method: 'POST' });
+          state.accounts = Array.isArray(data.accounts) ? data.accounts : state.accounts;
+          state.defaultAccountId = data.default_account_id || id;
+          state.healthyCount = state.accounts.filter((item) => item.status === 'ready').length;
+          const account = state.accounts.find((item) => item.id === id);
+          if (account) {
+            state.account = account;
+            localStorage.setItem('qoder.account', id);
+          }
+          updateAccountUi();
+          renderAccountsModal();
+          showToast('默认账号已更新');
+        } catch (error) {
+          showToast(`设置失败：${error.message || error}`);
+        }
+      }
+
+      async function deleteAccount(id) {
+        const account = state.accounts.find((item) => item.id === id);
+        if (!account) return;
+        if (!window.confirm(`确定删除账号「${account.label}」？OAuth 配置目录会保留在服务器上。`)) return;
+        try {
+          const data = await accountFetch(`/v1/accounts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+          state.accounts = Array.isArray(data.accounts) ? data.accounts : [];
+          state.defaultAccountId = data.default_account_id || null;
+          state.healthyCount = state.accounts.filter((item) => item.status === 'ready').length;
+          if (!state.accounts.some((item) => item.id === state.account?.id)) {
+            state.account =
+              state.accounts.find((item) => item.is_default && item.status === 'ready') ||
+              state.accounts.find((item) => item.status === 'ready') ||
+              state.accounts.find((item) => item.is_default) ||
+              state.accounts[0] ||
+              null;
+            if (state.account) localStorage.setItem('qoder.account', state.account.id);
+            else localStorage.removeItem('qoder.account');
+          }
+          updateAccountUi();
+          renderAccountsModal();
+          showToast('账号已删除');
+        } catch (error) {
+          showToast(`删除失败：${error.message || error}`);
+        }
+      }
+
+      function accountLoginUrl(id) {
+        const account = state.accounts.find((item) => item.id === id);
+        return account?.login_url || '';
+      }
+
+      function openAccountLoginUrl(id) {
+        const url = accountLoginUrl(id);
+        if (!url) {
+          showToast('授权链接尚未生成，请稍后刷新');
+          return;
+        }
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+
+      async function copyAccountLoginUrl(id) {
+        const url = accountLoginUrl(id);
+        if (!url) {
+          showToast('授权链接尚未生成');
+          return;
+        }
+        await copyText(url);
+        showToast('授权链接已复制');
+      }
+
+      function toggleAccountMenu() {
+        const willOpen = els.accountMenu.hidden;
+        if (willOpen) closeModelMenu();
+        els.accountMenu.hidden = !willOpen;
+        els.accountPicker.classList.toggle('open', willOpen);
+        els.accountBtn.setAttribute('aria-expanded', String(willOpen));
+      }
+
+      function closeAccountMenu() {
+        els.accountMenu.hidden = true;
+        els.accountPicker.classList.remove('open');
+        els.accountBtn.setAttribute('aria-expanded', 'false');
       }
 
       /* ---------- markdown ---------- */
@@ -1110,6 +1718,7 @@
 
       function toggleModelMenu() {
         const willOpen = els.modelMenu.hidden;
+        if (willOpen) closeAccountMenu();
         els.modelMenu.hidden = !willOpen;
         els.modelPicker.classList.toggle('open', willOpen);
         els.modelBtn.setAttribute('aria-expanded', String(willOpen));
@@ -1186,58 +1795,66 @@
           key: state.apiKey || '<YOUR_API_KEY>',
           model: state.model?.id || 'deepseek-flash',
           context: state.contextWindow || state.model?.default_context_window || 200000,
+          account: state.loadBalance ? 'auto' : state.account?.id || '',
+          accountLabel: state.loadBalance ? '自动负载均衡' : state.account?.label || '',
         };
       }
 
       function buildSnippet(tab) {
-        const { base, openaiBase, key, model, context } = snippetData();
+        const { base, openaiBase, key, model, context, account } = snippetData();
         if (tab === 'openai') {
           return {
             title: 'OpenAI 兼容 Agent 环境变量',
-            note: `适用于 Cline、Continue、Roo Code、OpenAI SDK 等支持自定义 base URL 的客户端；请求体可加 "context_window": ${context} 覆盖上下文窗口。`,
+            note: `适用于 Cline、Continue、Roo Code、OpenAI SDK 等支持自定义 base URL 的客户端；请求体可加 "context_window": ${context}，可选账号头 X-Qoder-Account: ${account || '<ACCOUNT_ID>'}。`,
             text:
               `export OPENAI_BASE_URL="${openaiBase}"\n` +
               `export OPENAI_API_BASE="${openaiBase}"\n` +
               `export OPENAI_API_KEY="${key}"\n` +
               `export OPENAI_MODEL="${model}"\n` +
-              `# 请求体可加 "context_window": ${context}\n`,
+              `# 请求体可加 "context_window": ${context}\n` +
+              `# 可选账号头：X-Qoder-Account: ${account || '<ACCOUNT_ID>'}\n`,
           };
         }
         if (tab === 'curl') {
           return {
             title: 'curl 连通性测试（OpenAI 格式）',
-            note: `Claude 协议测试把路径换成 /v1/messages，并改用 x-api-key 请求头；context_window 支持 200000/400000/1000000（取决于模型）。`,
+            note: 'Claude 协议测试把路径换成 /v1/messages，并改用 x-api-key 请求头；context_window 支持 200000/400000/1000000（取决于模型）。',
             text:
               `curl ${openaiBase}/chat/completions \\\n` +
               `  -H "Authorization: Bearer ${key}" \\\n` +
+              `${account ? `  -H "X-Qoder-Account: ${account}" \\\n` : ''}` +
               `  -H "Content-Type: application/json" \\\n` +
               `  -d '{"model":"${model}","context_window":${context},"messages":[{"role":"user","content":"你好"}]}'\n`,
           };
         }
         if (tab === 'json') {
+          const config = { provider: 'openai', baseUrl: openaiBase, apiKey: key, model, context_window: context };
+          if (account) config.account = account;
           return {
             title: '通用 JSON 配置',
             note: '不同客户端的字段名可能不同（baseURL / base_url / apiBase），按客户端要求调整。',
-            text: `${JSON.stringify({ provider: 'openai', baseUrl: openaiBase, apiKey: key, model, context_window: context }, null, 2)}\n`,
+            text: `${JSON.stringify(config, null, 2)}\n`,
           };
         }
         return {
           title: 'Claude / Anthropic 环境变量',
-          note: `本代理不支持 tool_use，Claude Code 等依赖工具调用的客户端只能做普通对话；请求体可加 "context_window": ${context} 覆盖窗口。`,
+          note: `本代理不支持 tool_use，Claude Code 等依赖工具调用的客户端只能做普通对话；请求体可加 "context_window": ${context}，可选账号头 X-Qoder-Account: ${account || '<ACCOUNT_ID>'}。`,
           text:
             `export ANTHROPIC_BASE_URL="${base}"\n` +
             `export ANTHROPIC_AUTH_TOKEN="${key}"\n` +
             `export ANTHROPIC_API_KEY="${key}"\n` +
             `export ANTHROPIC_MODEL="${model}"\n` +
             `export ANTHROPIC_SMALL_FAST_MODEL="${model}"\n` +
-            `# 请求体可加 "context_window": ${context}\n`,
+            `# 请求体可加 "context_window": ${context}\n` +
+            `# 可选账号头：X-Qoder-Account: ${account || '<ACCOUNT_ID>'}\n`,
         };
       }
 
       function renderIntegration() {
-        const { base, openaiBase, key, model, context } = snippetData();
+        const { base, openaiBase, key, model, context, account } = snippetData();
         els.connClaudeBase.textContent = base;
         els.connOpenAiBase.textContent = openaiBase;
+        els.connAccount.textContent = state.loadBalance ? '自动负载均衡（auto）' : account || '默认账号';
         els.connKey.textContent = state.apiKey
           ? state.apiKey.length > 20
             ? `${state.apiKey.slice(0, 12)}…${state.apiKey.slice(-4)}`
@@ -1257,6 +1874,7 @@
       }
 
       function openIntegrationModal() {
+        closeAccountsModal();
         renderIntegration();
         els.integrationModal.hidden = false;
         closeSidebar();
@@ -1397,9 +2015,14 @@
       }
 
       function updateComposer() {
+        const autoBlocked = state.loadBalance && state.healthyCount === 0;
+        const manualBlocked =
+          !state.loadBalance &&
+          (!state.account || ['login_required', 'login_pending', 'error'].includes(state.account.status));
+        const accountBlocked = autoBlocked || manualBlocked;
         els.sendBtn.hidden = state.streaming;
         els.stopBtn.hidden = !state.streaming;
-        els.sendBtn.disabled = state.streaming || !els.input.value.trim();
+        els.sendBtn.disabled = state.streaming || !els.input.value.trim() || accountBlocked;
         els.input.disabled = false;
       }
 
@@ -1445,6 +2068,17 @@
           showToast('还没有可用模型，请先检查服务端或填写 API Key');
           return;
         }
+        if (state.loadBalance) {
+          if (state.healthyCount === 0) {
+            showToast('没有健康账号可用，请先登录或修复账号');
+            openAccountsModal();
+            return;
+          }
+        } else if (!state.account || ['login_required', 'login_pending', 'error'].includes(state.account.status)) {
+          showToast('当前账号不可用，请先登录或切换账号');
+          openAccountsModal();
+          return;
+        }
 
         els.input.value = '';
         resizeInput();
@@ -1467,6 +2101,7 @@
             headers: { 'Content-Type': 'application/json', ...authHeaders() },
             body: JSON.stringify({
               model: state.model.id,
+              account: state.loadBalance ? 'auto' : state.account.id,
               messages: history,
               context_window: state.contextWindow || undefined,
               stream: true,
@@ -1479,6 +2114,15 @@
             const payload = await response.json().catch(() => null);
             const message = payload?.error?.message || payload?.error?.error?.message || `HTTP ${response.status}`;
             if (response.status === 401) showAuth(true);
+            const accountErrorCode = String(payload?.error?.code || '');
+            if (
+              response.status === 409 ||
+              response.status === 503 ||
+              accountErrorCode.startsWith('account_') ||
+              accountErrorCode === 'no_healthy_account'
+            ) {
+              loadAccounts();
+            }
             throw new Error(message);
           }
 
@@ -1524,6 +2168,79 @@
       }
 
       /* ---------- events ---------- */
+      els.accountBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleAccountMenu();
+      });
+
+      els.accountMenu.addEventListener('click', async (event) => {
+        const auto = event.target.closest('[data-account-mode="auto"]');
+        if (auto) {
+          closeAccountMenu();
+          closeSidebar();
+          await setLoadBalanceMode(true);
+          return;
+        }
+        const item = event.target.closest('[data-account]');
+        if (item) await selectAccount(item.dataset.account);
+      });
+
+      els.manageAccounts.addEventListener('click', openAccountsModal);
+      els.bannerAccounts.addEventListener('click', openAccountsModal);
+      els.closeAccounts.addEventListener('click', closeAccountsModal);
+      els.createAccountBtn.addEventListener('click', createAccount);
+      els.toggleBalance.addEventListener('click', () => {
+        setLoadBalanceMode(!state.loadBalance);
+      });
+      els.openLoginUrl.addEventListener('click', () => {
+        const pending = state.accounts.find((account) => account.status === 'login_pending' && account.login_url);
+        const url = pending?.login_url || state.lastLoginUrl;
+        if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        else showToast('授权链接尚未生成');
+      });
+      els.copyLoginUrl.addEventListener('click', async () => {
+        const pending = state.accounts.find((account) => account.status === 'login_pending' && account.login_url);
+        const url = pending?.login_url || state.lastLoginUrl;
+        if (!url) {
+          showToast('授权链接尚未生成');
+          return;
+        }
+        await copyText(url);
+        showToast('授权链接已复制');
+      });
+      els.copyLoginCommandBtn.addEventListener('click', async () => {
+        if (!state.lastLoginCommand) return;
+        await copyText(state.lastLoginCommand);
+        showToast('登录命令已复制');
+      });
+      els.newAccountLabel.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.isComposing) {
+          event.preventDefault();
+          createAccount();
+        }
+      });
+
+      els.accountsModal.addEventListener('click', async (event) => {
+        if (event.target === els.accountsModal) {
+          closeAccountsModal();
+          return;
+        }
+        const action = event.target.closest('[data-account-action]');
+        if (!action) return;
+        const row = action.closest('[data-account-id]');
+        const id = row?.dataset.accountId;
+        if (!id) return;
+        if (action.dataset.accountAction === 'test') await testAccount(id);
+        else if (action.dataset.accountAction === 'default') await makeDefaultAccount(id);
+        else if (action.dataset.accountAction === 'login-url') await startAccountLogin(id);
+        else if (action.dataset.accountAction === 'open-login') openAccountLoginUrl(id);
+        else if (action.dataset.accountAction === 'copy-login-url') await copyAccountLoginUrl(id);
+        else if (action.dataset.accountAction === 'refresh') {
+          await loadAccounts();
+          renderAccountsModal();
+        } else if (action.dataset.accountAction === 'delete') await deleteAccount(id);
+      });
+
       els.modelBtn.addEventListener('click', (event) => {
         event.stopPropagation();
         toggleModelMenu();
@@ -1541,15 +2258,21 @@
 
       document.addEventListener('click', (event) => {
         if (!els.modelPicker.contains(event.target)) closeModelMenu();
+        if (!els.accountPicker.contains(event.target)) closeAccountMenu();
       });
 
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
+          if (!els.accountsModal.hidden) {
+            closeAccountsModal();
+            return;
+          }
           if (!els.integrationModal.hidden) {
             closeIntegrationModal();
             return;
           }
           closeModelMenu();
+          closeAccountMenu();
           closeSidebar();
         }
       });
@@ -1568,7 +2291,7 @@
         const copy = event.target.closest('[data-copy]');
         if (copy) {
           const kind = copy.dataset.copy;
-          const { base, openaiBase, key, model, context } = snippetData();
+          const { base, openaiBase, key, model, context, account } = snippetData();
           const value = kind === 'claudeBase'
             ? base
             : kind === 'openaiBase'
@@ -1577,7 +2300,13 @@
                 ? state.apiKey
                 : kind === 'context'
                   ? String(context)
-                  : model;
+                  : kind === 'account'
+                    ? account
+                    : model;
+          if (kind === 'account' && !account) {
+            showToast('当前使用服务端默认账号');
+            return;
+          }
           if (!value) {
             showToast('还没有 API Key，请先在连接设置中粘贴并保存');
             els.settings.open = true;
@@ -1621,6 +2350,7 @@
         showToast('设置已保存，正在重连…');
         if (!els.integrationModal.hidden) renderIntegration();
         loadModels();
+        loadAccounts();
       });
 
       els.apiKey.addEventListener('keydown', (event) => {
@@ -1683,6 +2413,7 @@
       updateContextUi();
       loadHealth();
       loadModels();
+      loadAccounts();
     })();
   </script>
 </body>

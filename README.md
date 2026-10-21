@@ -22,6 +22,7 @@
 - 多模型切换：DeepSeek-Flash、DeepSeek-V4-Pro、Qwen、GLM、Kimi、MiniMax 等
 - 上下文窗口选择：`200K / 400K / 1M`（以模型支持为准）
 - Web 聊天界面：模型选择、流式输出、思考过程、Markdown、代码复制、停止生成
+- 多账号池：独立 OAuth 配置目录；创建账号直接返回授权链接；健康账号自动负载均衡；异常账号自动停用
 - 本机/内网打开 Web UI 时自动填充 API Key
 - 一键复制其他 Agent 的接入配置（Claude / OpenAI / curl / JSON）
 - 通过官方 SDK 完成鉴权与签名，不伪造请求签名
@@ -30,7 +31,9 @@
 
 - macOS
 - 已安装 Qoder CN 桌面客户端（默认路径 `/Applications/Qoder CN.app`）
-- 合法可用的 Qoder CN 账号与 Personal Access Token（PAT）
+- 合法可用的 Qoder CN 账号
+- 使用 OAuth 多账号时，需要官方 Qoder CN CLI（`accounts.sh` 会在未安装时回退到 npx）
+- 也可以只使用一个 Personal Access Token（PAT）作为兼容账号
 - `git`、`bash`、`curl`、`openssl`
 - 无需单独安装 Node.js：服务通过 Qoder CN 自带的 Electron Node 运行
 
@@ -42,18 +45,33 @@
 git clone https://github.com/40kuai/Qoder-Chat.git
 cd Qoder-Chat
 cp .env.example .env
+chmod +x start.sh access.sh accounts.sh
 ```
 
-编辑 `.env`，填入你的 Qoder CN PAT：
+选择一种认证方式：
+
+**方式 A：单账号 PAT（兼容模式）**
+
+编辑 `.env`，填入 Qoder CN PAT：
 
 ```dotenv
 QODER_PAT=pt-your-personal-access-token
 ```
 
+**方式 B：多账号 OAuth（推荐）**
+
+```bash
+./accounts.sh add "工作账号"
+./accounts.sh login <账号ID或名称>
+./accounts.sh test <账号ID或名称>
+./accounts.sh default <账号ID或名称>
+```
+
+OAuth 账号不需要在 `.env` 中填写 `QODER_PAT`。登录会在浏览器中完成官方授权。
+
 启动：
 
 ```bash
-chmod +x start.sh access.sh
 ./start.sh
 ```
 
@@ -76,12 +94,15 @@ chmod +x start.sh access.sh
 
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
-| `QODER_PAT` | 无 | 必填。Qoder CN Personal Access Token |
+| `QODER_PAT` | 空 | 可选。Qoder CN Personal Access Token，作为“兼容账号（PAT）” |
 | `HOST` | `127.0.0.1` | 监听地址；局域网访问需设为 `0.0.0.0` |
 | `PORT` | `8788` | HTTP 端口 |
 | `PROXY_API_KEY` | 空 | 对外 API 的访问 Key；为空时自动生成 |
 | `UI_AUTO_AUTH` | `private` | Web UI 自动认证策略：`private` / `local` / `off` |
 | `QODER_APP_PATH` | `/Applications/Qoder CN.app` | Qoder CN 安装路径 |
+| `QODER_POOL_HOME` | `~/.qoder-cn-pool` | 账号元数据与 OAuth 配置目录 |
+| `QODER_CLI_BIN` | 自动检测 | 官方 Qoder CN CLI 路径（可选） |
+| `ACCOUNT_HEALTH_INTERVAL_MS` | `600000` | 账号健康检查间隔，默认 10 分钟 |
 | `REQUEST_TIMEOUT_MS` | `300000` | 单次请求超时 |
 | `MAX_CONCURRENT` | `4` | 最大并发请求数 |
 
@@ -94,7 +115,110 @@ chmod +x start.sh access.sh
 
 如果要在不可信局域网或公网使用，请设置 `UI_AUTO_AUTH=local` 或 `off`，并配合 HTTPS 反向代理、防火墙和强随机 Key。
 
+## 多账号池（OAuth + 自动负载均衡）
+
+本项目支持管理多个**你本人或团队自有**的 Qoder CN 账号。每个账号使用独立的 CLI 配置目录，通过官方浏览器 OAuth 登录。支持健康账号自动负载均衡和手动选号；账号异常会自动停用。**不做按额度/限流轮换、共享、出租或转售**。
+
+### 安装官方 CLI
+
+OAuth 登录依赖 Qoder CN 官方 CLI。安装方式任选：
+
+```bash
+# 推荐：原生安装脚本
+curl -fsSL https://static.qoder.com.cn/qoder-cli-cn/install.sh | bash
+
+# 或 npm
+npm install -g @qodercn-ai/qoderclicn
+```
+
+未安装时，`accounts.sh` 会回退到 `npx @qodercn-ai/qoderclicn`（首次下载较慢）。
+
+### 添加与登录
+
+**方式 A：Web UI（推荐，直接生成授权 URL）**
+
+在「管理账号」中点击「创建并授权」。名称可以留空：登录成功后会自动使用官方授权返回的账号身份（例如邮箱）命名；也可以填写备注名。服务端会启动官方 CLI 的 OAuth 流程并返回一个授权 URL，在任意浏览器打开完成登录即可。登录进程在服务端等待授权，账号状态会自动从「等待授权」变为「可用」。
+
+> 一个浏览器会话通常对应一个 Qoder 账号。添加不同账号时，请先退出当前账号或使用隐私窗口打开授权链接。
+
+**方式 B：终端**
+
+```bash
+./accounts.sh add            # 名称可留空，登录后自动命名
+./accounts.sh add "工作账号"  # 或填写备注名
+# 输出账号 ID
+./accounts.sh login <账号ID或名称>
+```
+
+`login` 会启动官方 CLI 的浏览器 OAuth 流程。请确认浏览器里登录的是你想添加的账号。
+
+登录后检查：
+
+```bash
+./accounts.sh test <账号ID或名称>
+./accounts.sh list
+```
+
+### 常用命令
+
+```bash
+./accounts.sh list
+./accounts.sh test                 # 检查全部账号
+./accounts.sh default <ID或名称>    # 设置默认账号
+./accounts.sh remove <ID或名称>     # 删除元数据，配置目录保留
+```
+
+### 自动负载均衡与手动选号
+
+- **自动负载均衡（默认开启）**：请求不传 `account` 时，在状态为「可用」的账号间轮询。
+- **异常账号自动停用**：状态为「需登录」「等待授权」「异常」的账号不会参与轮询；显式指定这些账号会返回 HTTP 409。
+- **健康检查**：启动时检查一次，之后每 10 分钟检查一次（`ACCOUNT_HEALTH_INTERVAL_MS` 可调整）。
+- **手动选号**：在 Web UI 关闭自动负载均衡后选择具体账号，或在请求中显式传账号 ID。
+- **强制自动**：请求传 `account: "auto"`，即使服务端关闭了自动模式也会在健康账号间轮询。
+- **不做额度轮换**：429、额度不足等错误不会触发账号切换或标记异常。
+
+API 示例：
+
+```json
+{
+  "model": "deepseek-flash",
+  "account": "auto",
+  "messages": [{"role": "user", "content": "你好"}]
+}
+```
+
+显式指定账号：
+
+```json
+{
+  "model": "deepseek-flash",
+  "account": "<账号ID>",
+  "messages": [{"role": "user", "content": "你好"}]
+}
+```
+
+也可以使用请求头：
+
+```http
+X-Qoder-Account: <账号ID>
+```
+
+不传账号时按服务端「自动负载均衡」设置执行；该设置可在 Web UI「管理账号」中开关。响应头 `X-Qoder-Account` 会返回本次实际使用的账号。
+
+### 存储与安全
+
+- 账号元数据：`~/.qoder-cn-pool/accounts.json`（权限 600），包含账号名/授权身份（可能是邮箱），仅保存在本地
+- OAuth 配置目录：`~/.qoder-cn-pool/accounts/<id>/cli`（权限 700），包含该账号的登录令牌
+- 不要把 `~/.qoder-cn-pool`、`.env` 或任何账号配置目录提交到仓库或分享给他人
+- OAuth 授权 URL 短期有效，只在认证后的 UI/API 中展示，不要转发给不可信的人
+- 仅用于自有账号；禁止对外共享、出租、出售账号或用于绕过平台额度/限流
+- 管理账号或登录时请确认浏览器当前登录的是目标账号
+- 健康检查会定期运行官方 CLI；OAuth 令牌失效时账号会被标记为「需登录」，需要手动重新登录
+- 旧版 `QODER_PAT` 会作为一个「兼容账号（PAT）」保留，可手动切换或删除
+
 ## API 使用
+
+不传 `account` 时按服务端负载均衡设置执行（默认开启，健康账号轮询）；传 `"auto"` 强制自动；显式账号或 `X-Qoder-Account` 请求头会覆盖自动模式。
 
 ### OpenAI 兼容
 
@@ -195,9 +319,10 @@ Qoder CN 的 DeepSeek-Flash 模型 ID 为 `dfmodel`，实际推理走 Qoder 网�
 
 1. 通过 `ELECTRON_RUN_AS_NODE=1` 使用 Qoder CN 自带的 Node 运行时；
 2. 加载客户端内置的官方 Agent SDK；
-3. 使用合法的 PAT 建立官方鉴权与签名链路；
+3. 使用合法的 PAT，或每个账号独立的官方 CLI OAuth 配置目录，建立官方鉴权与签名链路；
 4. 把 SDK 的文本/thinking 事件转换为 OpenAI SSE 或 Anthropic SSE；
-5. 通过 `extraArgs` 透传 `--context-window` 调整上下文窗口。
+5. 通过 `extraArgs` 透传 `--context-window` 调整上下文窗口；
+6. 通过官方 CLI 的 `--config-dir` 隔离不同账号的登录态，并按请求手动选择账号。
 
 本项目不包含、也不分发 Qoder CN 客户端或 SDK 本体。
 
@@ -209,12 +334,24 @@ Qoder CN 的 DeepSeek-Flash 模型 ID 为 `dfmodel`，实际推理走 Qoder 网�
 - 每个请求会启动一次 agent worker，通常有 2–5 秒延迟
 - 模型目录是客户端版本的快照，Qoder CN 升级后可能变化
 - 未对所有付费模型逐一验证，使用付费模型会消耗账号额度
+- 多账号需要手动打开授权链接完成 OAuth；可自动负载均衡健康账号，但不按额度/限流切换
+- 自动负载均衡只使用状态为「可用」的账号；异常账号需要重新登录或修复后才会重新参与
+- OAuth 账号健康检查依赖官方 CLI；使用 npx 回退时首次调用会较慢
+- 账号池仅限你本人或团队自有并授权的账号
 
 ## 常见问题
 
-**`QODER_PAT is required`**
+**`No account configured`**
 
-在 `.env` 中填写 `QODER_PAT`，或导出 `QODERCN_PERSONAL_ACCESS_TOKEN` 后启动。
+使用 OAuth 多账号时，先执行 `./accounts.sh add "名称"` 和 `./accounts.sh login <id>`；或在 `.env` 中填写 `QODER_PAT` 作为兼容账号。
+
+**OAuth 账号显示「需登录」**
+
+在运行服务的机器上执行 `./accounts.sh login <账号ID>`，并确认浏览器中登录的是该账号。登录完成后执行 `./accounts.sh test <账号ID>`。
+
+**账号测试很慢**
+
+如果 `accounts.sh` 回退到了 npx，首次会下载官方 CLI。建议安装原生 CLI：`curl -fsSL https://static.qoder.com.cn/qoder-cli-cn/install.sh | bash`，或设置 `QODER_CLI_BIN` 指向已有 CLI。
 
 **`Qoder CN SDK runtime not found`**
 
@@ -241,8 +378,11 @@ Qoder CN 的 DeepSeek-Flash 模型 ID 为 `dfmodel`，实际推理走 Qoder 网�
 ```text
 .
 ├── server.mjs       # HTTP 服务：OpenAI / Anthropic 兼容层与 SDK 桥接
-├── ui.html          # Web 聊天界面
-├── start.sh         # 启动脚本（自动读取 PAT、生成代理 Key）
+├── ui.html          # Web 聊天界面（含账号池管理）
+├── accounts.mjs     # 账号池存储、OAuth 配置目录、CLI 健康检查
+├── accounts-cli.mjs # 账号池 CLI（list/add/login/test/default/remove）
+├── accounts.sh      # 账号池 CLI 入口
+├── start.sh         # 启动脚本（加载账号、生成代理 Key）
 ├── access.sh        # 输出接入地址、Key 和配置片段
 ├── .env.example     # 环境变量示例
 └── package.json

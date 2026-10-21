@@ -35,6 +35,25 @@ if [[ -z "$BASE" ]]; then
 fi
 OPENAI="${BASE}/v1"
 
+ACCOUNT_FILE="$HOME/.qoder-cn-pool/accounts.json"
+DEFAULT_ACCOUNT=""
+LOAD_BALANCE="on"
+if [[ -f "$ACCOUNT_FILE" ]]; then
+  DEFAULT_ACCOUNT="$(python3 - "$ACCOUNT_FILE" <<'PY' 2>/dev/null || true
+import json,sys
+d=json.load(open(sys.argv[1]))
+a=next((x for x in d.get('accounts',[]) if x.get('id')==d.get('defaultAccountId')),None)
+print(a['id'] if a else '')
+PY
+)"
+  LOAD_BALANCE="$(python3 - "$ACCOUNT_FILE" <<'PY' 2>/dev/null || true
+import json,sys
+d=json.load(open(sys.argv[1]))
+print('off' if d.get('loadBalance') is False else 'on')
+PY
+)"
+fi
+
 cat <<EOF
 Qoder 模型代理接入信息
 ========================
@@ -43,6 +62,8 @@ Base URL (OpenAI) : ${OPENAI}
 API Key           : ${PROXY_API_KEY}
 Model             : ${MODEL}
 Context window    : ${CONTEXT_WINDOW}
+Default account   : ${DEFAULT_ACCOUNT:-未设置}
+Load balance      : ${LOAD_BALANCE}
 
 --- Claude / Anthropic 环境变量 ---
 export ANTHROPIC_BASE_URL="${BASE}"
@@ -67,5 +88,6 @@ export OPENAI_MODEL="${MODEL}"
 }
 
 上下文窗口：请求体可传 "context_window": 200000 / 400000 / 1000000，以模型支持为准。
+账号选择：不传 account 时按负载均衡设置（开启=自动选健康账号，关闭=默认账号）；传 "auto" 强制自动，传账号ID强制指定。也可用请求头 X-Qoder-Account。
 提示：Claude Code 等依赖 tool_use 的客户端只能普通对话，本代理不执行工具。
 EOF

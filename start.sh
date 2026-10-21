@@ -21,9 +21,7 @@ if [[ -z "${QODER_PAT:-}" ]]; then
   QODER_PAT="${QODERCN_PERSONAL_ACCESS_TOKEN:-${QODER_PERSONAL_ACCESS_TOKEN:-}}"
   export QODER_PAT
 fi
-: "${QODER_PAT:?QODER_PAT is required. Put it in .env or export QODERCN_PERSONAL_ACCESS_TOKEN.}"
-
-if [[ "$QODER_PAT" != pt-* ]]; then
+if [[ -n "${QODER_PAT:-}" && "$QODER_PAT" != pt-* ]]; then
   echo "Warning: QODER_PAT does not start with 'pt-'; QoderCN PATs normally do." >&2
 fi
 
